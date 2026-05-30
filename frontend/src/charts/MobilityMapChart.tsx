@@ -18,6 +18,7 @@ interface MobilityMapChartProps {
   nodes: MapNode[];
   routes: MapRoute[];
   selectedZone: string;
+  selectableZoneIds: string[];
   onZoneSelect: (zoneId: string) => void;
 }
 
@@ -41,7 +42,7 @@ type TaxiZoneGeoJson = {
 
 const MAP_NAME = 'nycTaxiZones';
 
-export function MobilityMapChart({ zones, nodes, routes, selectedZone, onZoneSelect }: MobilityMapChartProps) {
+export function MobilityMapChart({ zones, nodes, routes, selectedZone, selectableZoneIds, onZoneSelect }: MobilityMapChartProps) {
   const [ready, setReady] = useState(false);
   const [zoneLookup, setZoneLookup] = useState<Record<string, { zone: string; borough: string }>>({});
   const [mapZoom, setMapZoom] = useState(1.12);
@@ -77,6 +78,7 @@ export function MobilityMapChart({ zones, nodes, routes, selectedZone, onZoneSel
   }, [zones]);
 
   const nodeByName = useMemo(() => new Map(nodes.map((node) => [node.name, node])), [nodes]);
+  const selectableZones = useMemo(() => new Set(selectableZoneIds), [selectableZoneIds]);
 
   const option = useMemo(() => {
     if (!ready) {
@@ -84,7 +86,9 @@ export function MobilityMapChart({ zones, nodes, routes, selectedZone, onZoneSel
     }
 
     const maxValue = Math.max(...zones.map((zone) => zone.value), 1);
-    const routeLines = routes
+    const routeLines = [...routes]
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5)
       .flatMap((route) => {
         const from = nodeByName.get(route.from);
         const to = nodeByName.get(route.to);
@@ -118,6 +122,7 @@ export function MobilityMapChart({ zones, nodes, routes, selectedZone, onZoneSel
         },
       },
       visualMap: {
+        show: false,
         min: 0,
         max: maxValue,
         right: 16,
@@ -195,6 +200,7 @@ export function MobilityMapChart({ zones, nodes, routes, selectedZone, onZoneSel
             position: 'right',
             color: colors.text,
             fontSize: 10,
+            hideOverlap: true,
             backgroundColor: 'rgba(4, 15, 28, 0.82)',
             borderColor: 'rgba(115, 196, 255, 0.42)',
             borderWidth: 1,
@@ -202,7 +208,9 @@ export function MobilityMapChart({ zones, nodes, routes, selectedZone, onZoneSel
             borderRadius: 3,
           },
           itemStyle: { color: (params: { data?: { color?: string } }) => params.data?.color ?? colors.blue },
-          data: nodes.map((node) => ({
+          data: nodes
+            .slice(0, 6)
+            .map((node) => ({
             name: node.name,
             locationId: node.zone,
             value: [...node.coord, node.value],
@@ -216,7 +224,7 @@ export function MobilityMapChart({ zones, nodes, routes, selectedZone, onZoneSel
   const handleClick = (event: ECElementEvent) => {
     const data = event.data as { locationId?: string } | undefined;
     const zoneId = data?.locationId ?? (typeof event.name === 'string' ? event.name : '');
-    if (zoneId && zoneLookup[zoneId]) {
+    if (zoneId && zoneLookup[zoneId] && selectableZones.has(zoneId)) {
       onZoneSelect(zoneId);
     }
   };
@@ -235,7 +243,15 @@ export function MobilityMapChart({ zones, nodes, routes, selectedZone, onZoneSel
       </div>
       <div className="map-status">
         <span>{selectedZone === 'all' ? 'All Taxi Zones' : zoneLookup[selectedZone]?.zone}</span>
-        <strong>{zones.length} active zones</strong>
+        <strong>{Object.keys(zoneLookup).length} boundaries / {zones.length} metric zones</strong>
+      </div>
+      <div className="map-legend">
+        <span>Metric Intensity</span>
+        <div className="legend-ramp" />
+        <div className="legend-scale">
+          <span>Low</span>
+          <span>High</span>
+        </div>
       </div>
     </div>
   );

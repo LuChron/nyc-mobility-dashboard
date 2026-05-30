@@ -48,6 +48,7 @@ export function Dashboard() {
             nodes={viewModel.mapNodes}
             routes={viewModel.mapRoutes}
             selectedZone={filters.zone}
+            selectableZoneIds={viewModel.availableZones.map((zone) => zone.id)}
             onZoneSelect={handleZoneSelect}
           />
         </Panel>

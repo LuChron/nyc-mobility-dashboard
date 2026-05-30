@@ -352,7 +352,7 @@ export function buildDashboardViewModel(filters: FilterState, distributionMode: 
       value: metricValue(zone, filters),
       selected: filters.zone === zone.locationId,
     })),
-    mapNodes: mapSourceZones.slice(0, 8).map((zone) => ({
+    mapNodes: [...mapSourceZones].sort((a, b) => metricValue(b, filters) - metricValue(a, filters)).slice(0, 6).map((zone) => ({
       name: zone.zone,
       zone: zone.locationId,
       borough: zone.borough,
@@ -382,4 +382,3 @@ export const initialFilters: FilterState = {
   zone: 'all',
   metric: 'pickup',
 };
-
