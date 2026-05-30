@@ -812,11 +812,17 @@ select {
   }
 
   .ranking-list {
-    gap: 5px;
+    gap: 3px;
+    padding: 4px 12px 4px;
   }
 
   .ranking-list li {
     grid-template-columns: 17px minmax(0, 1fr) 64px 50px;
+  }
+
+  .link-button {
+    height: 26px;
+    margin: 3px 12px 8px;
   }
 }
 
