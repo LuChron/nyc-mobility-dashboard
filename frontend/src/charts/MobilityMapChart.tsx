@@ -44,6 +44,7 @@ const MAP_NAME = 'nycTaxiZones';
 export function MobilityMapChart({ zones, nodes, routes, selectedZone, onZoneSelect }: MobilityMapChartProps) {
   const [ready, setReady] = useState(false);
   const [zoneLookup, setZoneLookup] = useState<Record<string, { zone: string; borough: string }>>({});
+  const [mapZoom, setMapZoom] = useState(1.12);
 
   useEffect(() => {
     let cancelled = false;
@@ -132,7 +133,7 @@ export function MobilityMapChart({ zones, nodes, routes, selectedZone, onZoneSel
       geo: {
         map: MAP_NAME,
         roam: true,
-        zoom: 1.12,
+        zoom: mapZoom,
         center: [-73.945, 40.72],
         nameProperty: 'name',
         itemStyle: {
@@ -210,7 +211,7 @@ export function MobilityMapChart({ zones, nodes, routes, selectedZone, onZoneSel
         },
       ],
     } as EChartsOption;
-  }, [nodeByName, nodes, ready, routes, selectedZone, zoneLookup, zoneValues, zones]);
+  }, [mapZoom, nodeByName, nodes, ready, routes, selectedZone, zoneLookup, zoneValues, zones]);
 
   const handleClick = (event: ECElementEvent) => {
     const data = event.data as { locationId?: string } | undefined;
@@ -225,9 +226,12 @@ export function MobilityMapChart({ zones, nodes, routes, selectedZone, onZoneSel
       {!ready && <div className="map-loading">Loading NYC taxi zones...</div>}
       <EChart option={option} className="chart map-chart" onClick={handleClick} />
       <div className="map-tools">
-        <button type="button">+</button>
-        <button type="button">-</button>
-        <button type="button">◎</button>
+        <button type="button" aria-label="Zoom in" onClick={() => setMapZoom((zoom) => Math.min(2.2, Number((zoom + 0.14).toFixed(2))))}>+</button>
+        <button type="button" aria-label="Zoom out" onClick={() => setMapZoom((zoom) => Math.max(0.82, Number((zoom - 0.14).toFixed(2))))}>-</button>
+        <button type="button" aria-label="Reset map" onClick={() => {
+          setMapZoom(1.12);
+          onZoneSelect('all');
+        }}>◎</button>
       </div>
       <div className="map-status">
         <span>{selectedZone === 'all' ? 'All Taxi Zones' : zoneLookup[selectedZone]?.zone}</span>

@@ -22,6 +22,14 @@ export function Dashboard() {
     setFilters((current) => ({ ...current, zone: current.zone === zoneId ? 'all' : zoneId }));
   };
 
+  const activeContext = [
+    filters.source.toUpperCase(),
+    filters.year,
+    filters.month === 'all' ? 'All Months' : filters.month.toUpperCase(),
+    filters.borough === 'all' ? 'All Boroughs' : filters.borough,
+    filters.zone === 'all' ? 'All Zones' : viewModel.availableZones.find((zone) => zone.id === filters.zone)?.zone ?? filters.zone,
+  ].join(' / ');
+
   return (
     <main className="dashboard-shell">
       <DashboardHeader />
@@ -34,7 +42,7 @@ export function Dashboard() {
           onReset={() => setFilters(initialFilters)}
         />
 
-        <Panel title="NYC Taxi Zone Map - Pickup Intensity & OD Flows" className="map-panel">
+        <Panel title="NYC Taxi Zone Map - Pickup Intensity & OD Flows" subtitle={activeContext} className="map-panel">
           <MobilityMapChart
             zones={viewModel.mapZones}
             nodes={viewModel.mapNodes}
