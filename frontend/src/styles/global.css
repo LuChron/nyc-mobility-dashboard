@@ -25,6 +25,25 @@ body {
   overflow: hidden;
 }
 
+* {
+  scrollbar-color: rgba(102, 185, 255, 0.55) rgba(5, 18, 34, 0.65);
+  scrollbar-width: thin;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: rgba(5, 18, 34, 0.65);
+}
+
+*::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(102, 185, 255, 0.55);
+}
+
 button,
 select {
   font: inherit;
@@ -849,5 +868,29 @@ select {
   .link-button {
     height: 26px;
     margin: 3px 12px 8px;
+  }
+
+  .filter-section {
+    padding: 6px 13px 7px;
+  }
+
+  .filter-section h3 {
+    margin-bottom: 6px;
+  }
+
+  .filter-section label {
+    margin-bottom: 6px;
+  }
+
+  select,
+  .segmented-grid button,
+  .metric-grid button {
+    height: 27px;
+  }
+
+  .reset-button {
+    height: 28px;
+    margin-top: 8px;
+    margin-bottom: 8px;
   }
 }

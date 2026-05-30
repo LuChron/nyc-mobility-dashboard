@@ -1,4 +1,5 @@
 import { sourceOptions } from './mockData';
+import { taxiZoneSeed } from './taxiZoneSeed';
 import type {
   ComparisonMetric,
   DashboardViewModel,
@@ -14,7 +15,7 @@ import type {
   ZoneMetric,
 } from '../types/dashboard';
 
-const baseZones: ZoneMetric[] = [
+const priorityZoneOverrides: ZoneMetric[] = [
   {
     locationId: '161',
     zone: 'Midtown Center',
@@ -136,6 +137,74 @@ const baseZones: ZoneMetric[] = [
     avgDistance: { all: 3.05, yellow: 2.4, green: 2.9, hvfhv: 3.7 },
   },
 ];
+
+const priorityZoneById = new Map(priorityZoneOverrides.map((zone) => [zone.locationId, zone]));
+
+function hashZone(locationId: string) {
+  let hash = 0;
+  for (const char of locationId) {
+    hash = (hash * 31 + char.charCodeAt(0)) % 9973;
+  }
+  return hash;
+}
+
+function boroughWeight(borough: string) {
+  return {
+    Manhattan: 1.65,
+    Queens: 1.05,
+    Brooklyn: 1.18,
+    Bronx: 0.72,
+    'Staten Island': 0.42,
+    EWR: 0.86,
+  }[borough] ?? 0.65;
+}
+
+function makeZoneMetric(seed: (typeof taxiZoneSeed)[number]): ZoneMetric {
+  const override = priorityZoneById.get(seed.locationId);
+  if (override) {
+    return override;
+  }
+
+  const hash = hashZone(seed.locationId);
+  const weight = boroughWeight(seed.borough);
+  const airportBoost = /Airport|Newark/.test(seed.zone) ? 1.8 : 1;
+  const base = Math.round((2200 + (hash % 9000)) * weight * airportBoost);
+  const yellow = Math.round(base * (seed.borough === 'Manhattan' ? 0.48 : 0.2 + (hash % 12) / 100));
+  const green = Math.round(base * (seed.borough === 'Manhattan' ? 0.08 : 0.18 + (hash % 10) / 100));
+  const hvfhv = Math.max(420, base - yellow - green);
+  const all = yellow + green + hvfhv;
+  const distanceBase = seed.borough === 'Manhattan' ? 2.2 : seed.borough === 'Staten Island' ? 6.1 : seed.borough === 'EWR' ? 15.4 : 3.5;
+  const distance = distanceBase + (hash % 45) / 10;
+  const fare = 9 + distance * 2.8 + (hash % 18) / 2;
+
+  return {
+    locationId: seed.locationId,
+    zone: seed.zone,
+    borough: seed.borough,
+    coord: seed.coord,
+    pickup: { all, yellow, green, hvfhv },
+    dropoff: {
+      all: Math.round(all * (0.9 + (hash % 18) / 100)),
+      yellow: Math.round(yellow * 0.96),
+      green: Math.round(green * 1.03),
+      hvfhv: Math.round(hvfhv * 0.94),
+    },
+    avgFare: {
+      all: fare,
+      yellow: fare * 0.86,
+      green: fare * 0.94,
+      hvfhv: fare * 1.12,
+    },
+    avgDistance: {
+      all: distance,
+      yellow: distance * 0.86,
+      green: distance * 0.95,
+      hvfhv: distance * 1.14,
+    },
+  };
+}
+
+const baseZones: ZoneMetric[] = taxiZoneSeed.map(makeZoneMetric);
 
 const routes = [
   { from: '161', to: '132', all: 12840, yellow: 5320, green: 820, hvfhv: 6700 },

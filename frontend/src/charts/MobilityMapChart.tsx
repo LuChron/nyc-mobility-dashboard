@@ -93,16 +93,16 @@ export function MobilityMapChart({ zones, nodes, routes, selectedZone, selectabl
     }
 
     const maxValue = Math.max(...zones.map((zone) => zone.value), 1);
-    const routeLines = [...routes]
+    const routeLines = selectedZone === 'all' ? [] : [...routes]
       .sort((a, b) => b.value - a.value)
-      .slice(0, 5)
+      .slice(0, 4)
       .map((route) => ({
           coords: [route.fromCoord, route.toCoord],
           value: route.value,
           lineStyle: {
             color: route.color,
-            width: Math.max(1.2, Math.min(5, route.value / 2600)),
-            opacity: 0.82,
+            width: Math.max(1.4, Math.min(3.4, route.value / 3600)),
+            opacity: 0.62,
           },
         }));
 
@@ -118,22 +118,21 @@ export function MobilityMapChart({ zones, nodes, routes, selectedZone, selectabl
           const lookup = zoneLookup[id];
           const metric = zoneValues.get(id);
           const value = typed.data?.value ?? metric?.value;
-          if (!lookup && typed.data?.name) {
-            return `${typed.data.name}<br/>Trips: ${Math.round(value ?? 0).toLocaleString()}`;
+          const zoneName = lookup?.zone ?? id;
+          const borough = lookup?.borough ?? typed.data?.borough ?? '-';
+          if (metric) {
+            return `${zoneName}<br/>Borough: ${borough}<br/>Value: ${Math.round(value ?? 0).toLocaleString()}`;
           }
-          if (lookup && !metric && !typed.data?.locationId) {
-            return `${lookup.zone}<br/>Borough: ${lookup.borough}<br/>No mock metric for current filters`;
-          }
-          return `${lookup?.zone ?? id}<br/>Borough: ${lookup?.borough ?? typed.data?.borough ?? '-'}<br/>Value: ${Math.round(value ?? 0).toLocaleString()}`;
+          return `${zoneName}<br/>Borough: ${borough}<br/>No mock data in this prototype`;
         },
       },
       visualMap: {
         show: false,
         min: 0,
         max: maxValue,
-        right: 16,
-        bottom: 18,
-        itemWidth: 130,
+        right: 12,
+        bottom: 14,
+        itemWidth: 140,
         itemHeight: 10,
         orient: 'horizontal',
         text: ['High', 'Low'],
@@ -167,38 +166,41 @@ export function MobilityMapChart({ zones, nodes, routes, selectedZone, selectabl
           type: 'map',
           geoIndex: 0,
           nameProperty: 'locationid',
-          data: zones.map((zone) => ({
-            name: zone.locationId,
-            locationId: zone.locationId,
-            value: zone.value,
-            borough: zone.borough,
-            itemStyle: zone.selected
-              ? {
-                  areaColor: '#fff071',
-                  borderColor: '#ffffff',
-                  borderWidth: 2,
-                }
-              : undefined,
-          })),
+          data: Object.keys(zoneLookup).map((id) => {
+            const zone = zoneValues.get(id);
+            const isSelected = selectedZone === id;
+            return {
+              name: id,
+              locationId: id,
+              value: zone?.value ?? 0,
+              borough: zone?.borough ?? zoneLookup[id]?.borough ?? '',
+              itemStyle: isSelected
+                ? {
+                    areaColor: '#fff071',
+                    borderColor: '#ffffff',
+                    borderWidth: 2,
+                  }
+                : undefined,
+            };
+          }),
         },
         {
           name: 'OD Flow',
           type: 'lines',
           coordinateSystem: 'geo',
           zlevel: 4,
-          effect: { show: true, symbol: 'arrow', symbolSize: 7, trailLength: 0.18 },
-          lineStyle: { curveness: 0.18 },
+          effect: { show: selectedZone !== 'all', symbol: 'arrow', symbolSize: 6, trailLength: 0.08 },
+          lineStyle: { curveness: 0.16 },
           data: routeLines,
         },
         {
           name: 'Top Zones',
-          type: 'effectScatter',
+          type: 'scatter',
           coordinateSystem: 'geo',
           zlevel: 5,
-          rippleEffect: { brushType: 'stroke', scale: 4 },
           symbolSize: (value: unknown) => {
             const typed = value as number[];
-            return Math.max(9, Math.min(28, typed[2] / 4800));
+            return Math.max(8, Math.min(18, typed[2] / 7200));
           },
           label: {
             show: true,
@@ -213,9 +215,15 @@ export function MobilityMapChart({ zones, nodes, routes, selectedZone, selectabl
             padding: [4, 6],
             borderRadius: 3,
           },
-          itemStyle: { color: (params: { data?: { color?: string } }) => params.data?.color ?? colors.blue },
+          itemStyle: {
+            color: (params: { data?: { color?: string } }) => params.data?.color ?? colors.blue,
+            borderColor: '#ffffff',
+            borderWidth: 2,
+            shadowBlur: 12,
+            shadowColor: 'rgba(255, 255, 255, 0.5)',
+          },
           data: nodes
-            .slice(0, 6)
+            .slice(0, 4)
             .map((node) => ({
             name: node.name,
             locationId: node.zone,
@@ -250,8 +258,8 @@ export function MobilityMapChart({ zones, nodes, routes, selectedZone, selectabl
       </div>
       <div className="map-status">
         <span>{selectedZone === 'all' ? 'All Taxi Zones' : zoneLookup[selectedZone]?.zone}</span>
-        <strong>{featureCount} map parts / {zones.length} metric zones</strong>
-        <em>Points: current top zones</em>
+        <strong>{featureCount} zones / {zones.length} with data</strong>
+        <em>{selectedZone === 'all' ? 'Dots: top zones. Select one to show OD flows.' : 'OD flows: selected zone only.'}</em>
       </div>
       <div className="map-legend">
         <span>Metric Intensity</span>
