@@ -2,12 +2,14 @@ node_modules/
 dist/
 .vite/
 
-data/raw/
-data/processed/
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
 *.parquet
-*.csv
 
 .DS_Store
 *.log
 coverage/
-
+__pycache__/
+*.pyc

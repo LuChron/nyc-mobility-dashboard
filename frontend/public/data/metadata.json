@@ -1,0 +1,13 @@
+{
+  "dataUpdated": "2026-05-30T04:49:38.927349+00:00",
+  "coveredMonths": [
+    "2025-01",
+    "2026-04"
+  ],
+  "sources": [
+    "yellow",
+    "green",
+    "hvfhv"
+  ],
+  "mode": "mock"
+}
