@@ -79,7 +79,6 @@ export function MobilityMapChart({ zones, nodes, routes, selectedZone, selectabl
     return values;
   }, [zones]);
 
-  const nodeByName = useMemo(() => new Map(nodes.map((node) => [node.name, node])), [nodes]);
   const selectableZones = useMemo(() => new Set(selectableZoneIds), [selectableZoneIds]);
 
   const option = useMemo(() => {
@@ -91,20 +90,15 @@ export function MobilityMapChart({ zones, nodes, routes, selectedZone, selectabl
     const routeLines = [...routes]
       .sort((a, b) => b.value - a.value)
       .slice(0, 5)
-      .flatMap((route) => {
-        const from = nodeByName.get(route.from);
-        const to = nodeByName.get(route.to);
-        if (!from || !to) return [];
-        return [{
-          coords: [from.coord, to.coord],
+      .map((route) => ({
+          coords: [route.fromCoord, route.toCoord],
           value: route.value,
           lineStyle: {
             color: route.color,
             width: Math.max(1.2, Math.min(5, route.value / 2600)),
             opacity: 0.82,
           },
-        }];
-      });
+        }));
 
     return {
       tooltip: {
@@ -116,9 +110,13 @@ export function MobilityMapChart({ zones, nodes, routes, selectedZone, selectabl
           const typed = params as { name?: string; data?: { locationId?: string; value?: number; name?: string; borough?: string } };
           const id = typed.data?.locationId ?? typed.name ?? '';
           const lookup = zoneLookup[id];
-          const value = typed.data?.value ?? zoneValues.get(id)?.value;
+          const metric = zoneValues.get(id);
+          const value = typed.data?.value ?? metric?.value;
           if (!lookup && typed.data?.name) {
             return `${typed.data.name}<br/>Trips: ${Math.round(value ?? 0).toLocaleString()}`;
+          }
+          if (lookup && !metric && !typed.data?.locationId) {
+            return `${lookup.zone}<br/>Borough: ${lookup.borough}<br/>No mock metric for current filters`;
           }
           return `${lookup?.zone ?? id}<br/>Borough: ${lookup?.borough ?? typed.data?.borough ?? '-'}<br/>Value: ${Math.round(value ?? 0).toLocaleString()}`;
         },
@@ -221,7 +219,7 @@ export function MobilityMapChart({ zones, nodes, routes, selectedZone, selectabl
         },
       ],
     } as EChartsOption;
-  }, [mapZoom, nodeByName, nodes, ready, routes, selectedZone, zoneLookup, zoneValues, zones]);
+  }, [mapZoom, nodes, ready, routes, selectedZone, zoneLookup, zoneValues, zones]);
 
   const handleClick = (event: ECElementEvent) => {
     const data = event.data as { locationId?: string } | undefined;
@@ -246,6 +244,7 @@ export function MobilityMapChart({ zones, nodes, routes, selectedZone, selectabl
       <div className="map-status">
         <span>{selectedZone === 'all' ? 'All Taxi Zones' : zoneLookup[selectedZone]?.zone}</span>
         <strong>{featureCount} map parts / {zones.length} metric zones</strong>
+        <em>Points: current top zones</em>
       </div>
       <div className="map-legend">
         <span>Metric Intensity</span>

@@ -84,6 +84,8 @@ export interface MapNode {
 export interface MapRoute {
   from: string;
   to: string;
+  fromCoord: [number, number];
+  toCoord: [number, number];
   value: number;
   color: string;
 }

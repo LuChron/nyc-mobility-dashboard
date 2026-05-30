@@ -327,12 +327,21 @@ function buildRoutes(filters: FilterState): RankingItem[] {
 }
 
 function mapRoutesForFilters(filters: FilterState): MapRoute[] {
-  return routes.map((route) => {
-    const from = baseZones.find((zone) => zone.locationId === route.from);
-    const to = baseZones.find((zone) => zone.locationId === route.to);
+  const visibleIds = new Set(filteredZones(filters).map((zone) => zone.locationId));
+  return routes
+    .filter((route) => filters.borough === 'all' || visibleIds.has(route.from) || visibleIds.has(route.to))
+    .filter((route) => filters.zone === 'all' || route.from === filters.zone || route.to === filters.zone)
+    .flatMap((route) => {
+      const from = baseZones.find((zone) => zone.locationId === route.from);
+      const to = baseZones.find((zone) => zone.locationId === route.to);
+      if (!from || !to) {
+        return [];
+      }
     return {
-      from: from?.zone ?? route.from,
-      to: to?.zone ?? route.to,
+      from: from.zone,
+      to: to.zone,
+      fromCoord: from.coord,
+      toCoord: to.coord,
       value: route[filters.source] * overallMultiplier(filters),
       color: sourceColors[filters.source],
     };

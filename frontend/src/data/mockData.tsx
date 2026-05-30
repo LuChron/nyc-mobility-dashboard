@@ -6,7 +6,6 @@ import type {
   HeatmapPoint,
   KpiMetric,
   MapNode,
-  MapRoute,
   MonthlyPoint,
   RankingItem,
   SourceKey,
@@ -86,7 +85,7 @@ export const mapNodes: MapNode[] = [
   { name: 'Lincoln Center', zone: '163', borough: 'Manhattan', coord: [45, 56], value: 76884, color: '#ffd21f' },
 ];
 
-export const mapRoutes: MapRoute[] = [
+export const mapRoutes = [
   { from: 'Midtown Center', to: 'JFK Airport', value: 12840, color: '#8b5cff' },
   { from: 'JFK Airport', to: 'Midtown Center', value: 11760, color: '#ffd21f' },
   { from: 'Midtown Center', to: 'LaGuardia Airport', value: 7920, color: '#5ad85a' },
@@ -168,4 +167,3 @@ export const cityLabels = [
 ];
 
 export const activityIcon = <Activity size={26} />;
-

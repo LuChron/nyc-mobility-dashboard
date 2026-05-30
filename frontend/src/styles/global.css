@@ -513,6 +513,12 @@ select {
   font-weight: 500;
 }
 
+.map-status em {
+  color: #66b9ff;
+  font-size: 10px;
+  font-style: normal;
+}
+
 .map-tools button {
   width: 30px;
   height: 30px;
