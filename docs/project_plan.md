@@ -4,6 +4,8 @@
 
 先完成课程项目的前端初步框架，使用 mock 数据还原最终大屏结构，后续再接入真实 TLC 聚合 JSON。
 
+当前地图已接入 NYC Open Data 的 Taxi Zone GeoJSON，前端展示的区域边界是真实出租车分区；图表数值仍是 mock 聚合数据。
+
 ## 技术栈
 
 - React
@@ -52,3 +54,7 @@ source_comparison.json
 4. 实现筛选状态联动地图、趋势图、热力图和排行表。
 5. 补充 GitHub Pages 部署配置。
 
+## 参考项目
+
+- SaleVis：参考其大屏式布局组织方式，保留顶部概览、中心主视图、多图表区域和模块边界的设计思路。
+- NYC Open Data Taxi Zones：用于真实 NYC Taxi Zone 区域地图。

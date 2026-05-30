@@ -27,6 +27,12 @@ npm run build
 python scripts/run_pipeline.py --mock
 ```
 
+地图使用 NYC Open Data 的官方 Taxi Zone GeoJSON，可用下面命令重新获取：
+
+```bash
+python scripts/fetch_taxi_zones.py
+```
+
 后续接入真实数据时，按以下流程扩展：
 
 ```text
@@ -55,5 +61,7 @@ frontend/   React + Vite 单页应用
 - React + TypeScript + Vite 前端骨架
 - 一屏式城市出行大屏布局
 - 左侧筛选区、主地图、KPI、排行和底部图表占位
-- ECharts mock 图表
+- 官方 NYC Taxi Zone GeoJSON 地图
+- 筛选状态联动 KPI、地图、排行和底部图表
+- ECharts mock 聚合数据图表
 - 数据 pipeline 入口和前端静态数据目录
