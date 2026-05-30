@@ -171,6 +171,7 @@ button {
   grid-template-rows: minmax(0, 1fr) 230px;
   gap: 9px;
   min-height: 0;
+  overflow: hidden;
 }
 
 .panel,
@@ -213,6 +214,7 @@ button {
 .filter-panel {
   grid-column: 1;
   grid-row: 1;
+  overflow-y: auto;
 }
 
 .map-panel {
@@ -224,9 +226,10 @@ button {
   display: grid;
   grid-column: 4;
   grid-row: 1;
-  grid-template-rows: 302px minmax(0, 1fr);
+  grid-template-rows: 340px minmax(0, 1fr);
   gap: 9px;
   min-height: 0;
+  overflow: hidden;
 }
 
 .trend-card {
@@ -779,6 +782,23 @@ select {
 @media (max-width: 1450px) {
   .dashboard-grid {
     grid-template-columns: 270px minmax(220px, 1fr) minmax(220px, 1fr) 430px;
+  }
+
+  .dashboard-header {
+    grid-template-columns: 132px minmax(360px, 1fr) 560px;
+  }
+
+  .title-block h1 {
+    font-size: 30px;
+  }
+
+  .header-metric {
+    padding: 0 12px;
+  }
+
+  .kpi-top strong {
+    font-size: 23px;
+  }
 }
 
 @media (max-height: 850px) {
@@ -787,7 +807,7 @@ select {
   }
 
   .right-column {
-    grid-template-rows: 250px minmax(0, 1fr);
+    grid-template-rows: 270px minmax(0, 1fr);
   }
 
   .kpi-card {
@@ -829,22 +849,5 @@ select {
   .link-button {
     height: 26px;
     margin: 3px 12px 8px;
-  }
-}
-
-  .dashboard-header {
-    grid-template-columns: 132px minmax(360px, 1fr) 560px;
-  }
-
-  .title-block h1 {
-    font-size: 30px;
-  }
-
-  .header-metric {
-    padding: 0 12px;
-  }
-
-  .kpi-top strong {
-    font-size: 23px;
   }
 }

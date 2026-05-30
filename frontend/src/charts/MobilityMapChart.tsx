@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import * as echarts from 'echarts';
 import type { ECElementEvent, EChartsOption } from 'echarts';
 import type { MapNode, MapRoute } from '../types/dashboard';
@@ -44,6 +44,7 @@ const MAP_NAME = 'nycTaxiZones';
 
 export function MobilityMapChart({ zones, nodes, routes, selectedZone, selectableZoneIds, onZoneSelect }: MobilityMapChartProps) {
   const [ready, setReady] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [zoneLookup, setZoneLookup] = useState<Record<string, { zone: string; borough: string }>>({});
   const [featureCount, setFeatureCount] = useState(0);
   const [mapZoom, setMapZoom] = useState(1.12);
@@ -51,13 +52,15 @@ export function MobilityMapChart({ zones, nodes, routes, selectedZone, selectabl
   useEffect(() => {
     let cancelled = false;
     fetch(`${import.meta.env.BASE_URL}data/taxi_zones.geojson`)
-      .then((response) => response.json() as Promise<TaxiZoneGeoJson>)
+      .then((response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json() as Promise<TaxiZoneGeoJson>;
+      })
       .then((geoJson) => {
         if (cancelled) return;
         const lookup: Record<string, { zone: string; borough: string }> = {};
         geoJson.features.forEach((feature) => {
           const id = feature.properties.locationid ?? '';
-          feature.properties.name = id;
           lookup[id] = {
             zone: feature.properties.zone ?? id,
             borough: feature.properties.borough ?? 'Unknown',
@@ -67,6 +70,9 @@ export function MobilityMapChart({ zones, nodes, routes, selectedZone, selectabl
         setZoneLookup(lookup);
         setFeatureCount(geoJson.features.length);
         setReady(true);
+      })
+      .catch(() => {
+        if (!cancelled) setLoadError(true);
       });
 
     return () => {
@@ -140,7 +146,7 @@ export function MobilityMapChart({ zones, nodes, routes, selectedZone, selectabl
         roam: true,
         zoom: mapZoom,
         center: [-73.945, 40.72],
-        nameProperty: 'name',
+        nameProperty: 'locationid',
         itemStyle: {
           areaColor: '#0b2340',
           borderColor: 'rgba(115, 196, 255, 0.38)',
@@ -160,7 +166,7 @@ export function MobilityMapChart({ zones, nodes, routes, selectedZone, selectabl
           name: 'Taxi Zone Metric',
           type: 'map',
           geoIndex: 0,
-          nameProperty: 'name',
+          nameProperty: 'locationid',
           data: zones.map((zone) => ({
             name: zone.locationId,
             locationId: zone.locationId,
@@ -221,17 +227,18 @@ export function MobilityMapChart({ zones, nodes, routes, selectedZone, selectabl
     } as EChartsOption;
   }, [mapZoom, nodes, ready, routes, selectedZone, zoneLookup, zoneValues, zones]);
 
-  const handleClick = (event: ECElementEvent) => {
+  const handleClick = useCallback((event: ECElementEvent) => {
     const data = event.data as { locationId?: string } | undefined;
     const zoneId = data?.locationId ?? (typeof event.name === 'string' ? event.name : '');
     if (zoneId && zoneLookup[zoneId] && selectableZones.has(zoneId)) {
       onZoneSelect(zoneId);
     }
-  };
+  }, [zoneLookup, selectableZones, onZoneSelect]);
 
   return (
     <div className="map-stage real-map-stage">
-      {!ready && <div className="map-loading">Loading NYC taxi zones...</div>}
+      {!ready && !loadError && <div className="map-loading">Loading NYC taxi zones...</div>}
+      {loadError && <div className="map-loading">Failed to load map data</div>}
       <EChart option={option} className="chart map-chart" onClick={handleClick} />
       <div className="map-tools">
         <button type="button" aria-label="Zoom in" onClick={() => setMapZoom((zoom) => Math.min(2.2, Number((zoom + 0.14).toFixed(2))))}>+</button>

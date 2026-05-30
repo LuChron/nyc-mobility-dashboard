@@ -4,29 +4,41 @@ import type { EChartsOption, ECElementEvent } from 'echarts';
 
 export function useEChart(option: EChartsOption, onClick?: (event: ECElementEvent) => void) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const chartRef = useRef<echarts.ECharts | null>(null);
+  const onClickRef = useRef(onClick);
+  onClickRef.current = onClick;
 
+  // Initialize chart once
   useEffect(() => {
-    if (!containerRef.current) {
-      return;
-    }
+    if (!containerRef.current) return;
 
     const chart = echarts.init(containerRef.current);
+    chartRef.current = chart;
     chart.setOption(option, true);
-    if (onClick) {
-      chart.on('click', onClick);
-    }
 
     const resizeObserver = new ResizeObserver(() => chart.resize());
     resizeObserver.observe(containerRef.current);
 
+    // Use ref-based click handler to avoid re-registration
+    const handleClick = (event: ECElementEvent) => {
+      onClickRef.current?.(event);
+    };
+    chart.on('click', handleClick);
+
     return () => {
-      if (onClick) {
-        chart.off('click', onClick);
-      }
+      chart.off('click', handleClick);
       resizeObserver.disconnect();
       chart.dispose();
+      chartRef.current = null;
     };
-  }, [option, onClick]);
+  }, []); // Only run once on mount
+
+  // Update option without destroying chart
+  useEffect(() => {
+    if (chartRef.current) {
+      chartRef.current.setOption(option, true);
+    }
+  }, [option]);
 
   return containerRef;
 }
