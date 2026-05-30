@@ -383,6 +383,12 @@ select {
     linear-gradient(135deg, rgba(9, 30, 58, 0.95), rgba(1, 12, 24, 0.98));
 }
 
+.real-map-stage {
+  background:
+    radial-gradient(circle at 48% 50%, rgba(45, 170, 255, 0.16), transparent 30%),
+    linear-gradient(135deg, rgba(8, 25, 48, 0.98), rgba(1, 9, 18, 0.98));
+}
+
 .map-grid {
   position: absolute;
   inset: -20%;
@@ -466,6 +472,45 @@ select {
   border: 1px solid rgba(115, 196, 255, 0.38);
   border-radius: 5px;
   background: rgba(3, 12, 24, 0.8);
+}
+
+.map-loading,
+.map-status {
+  position: absolute;
+  z-index: 3;
+  border: 1px solid rgba(115, 196, 255, 0.24);
+  border-radius: 5px;
+  background: rgba(4, 15, 28, 0.86);
+}
+
+.map-loading {
+  top: 50%;
+  left: 50%;
+  padding: 10px 14px;
+  color: #bdd8eb;
+  font-size: 12px;
+  transform: translate(-50%, -50%);
+}
+
+.map-status {
+  top: 14px;
+  right: 14px;
+  display: grid;
+  gap: 3px;
+  min-width: 170px;
+  padding: 8px 10px;
+}
+
+.map-status span {
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.map-status strong {
+  color: #8eb7d8;
+  font-size: 11px;
+  font-weight: 500;
 }
 
 .map-tools button {
@@ -634,9 +679,24 @@ select {
 }
 
 .rank-label {
+  min-width: 0;
+  padding: 0;
   overflow: hidden;
+  color: #dff1ff;
+  border: 0;
+  background: transparent;
+  font-size: 11px;
+  text-align: left;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.rank-label:disabled {
+  cursor: default;
+}
+
+.rank-label:not(:disabled):hover {
+  color: #66b9ff;
 }
 
 .rank-bar {
@@ -731,4 +791,3 @@ select {
     font-size: 23px;
   }
 }
-

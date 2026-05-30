@@ -7,9 +7,10 @@ interface RankingListProps {
   unit: string;
   items: RankingItem[];
   actionLabel: string;
+  onSelect?: (zoneId: string) => void;
 }
 
-export function RankingList({ title, unit, items, actionLabel }: RankingListProps) {
+export function RankingList({ title, unit, items, actionLabel, onSelect }: RankingListProps) {
   return (
     <Panel
       title={title}
@@ -20,7 +21,14 @@ export function RankingList({ title, unit, items, actionLabel }: RankingListProp
         {items.map((item, index) => (
           <li key={item.label}>
             <span className="rank-index">{index + 1}</span>
-            <span className="rank-label">{item.label}</span>
+            <button
+              type="button"
+              className="rank-label"
+              onClick={() => item.zoneId && onSelect?.(item.zoneId)}
+              disabled={!item.zoneId || !onSelect}
+            >
+              {item.label}
+            </button>
             <span className="rank-bar">
               <i style={{ width: `${item.score}%`, backgroundColor: item.color }} />
             </span>
@@ -35,4 +43,3 @@ export function RankingList({ title, unit, items, actionLabel }: RankingListProp
     </Panel>
   );
 }
-

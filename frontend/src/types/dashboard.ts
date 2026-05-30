@@ -4,6 +4,22 @@ export type SourceKey = 'all' | 'yellow' | 'green' | 'hvfhv';
 
 export type KpiTone = 'blue' | 'green' | 'purple' | 'amber';
 
+export type DayType = 'weekday' | 'weekend';
+
+export type MetricKey = 'pickup' | 'dropoff' | 'tripCount' | 'avgFare' | 'avgDistance';
+
+export type DistributionMode = 'fare' | 'distance';
+
+export interface FilterState {
+  source: SourceKey;
+  year: '2025-2026' | '2025' | '2026';
+  month: 'all' | 'q1' | 'q2' | 'h2';
+  dayType: DayType;
+  borough: string;
+  zone: string;
+  metric: MetricKey;
+}
+
 export interface HeaderMetric {
   label: string;
   value: string;
@@ -25,6 +41,7 @@ export interface RankingItem {
   value: string;
   score: number;
   color?: string;
+  zoneId?: string;
 }
 
 export interface MonthlyPoint {
@@ -71,3 +88,33 @@ export interface MapRoute {
   color: string;
 }
 
+export interface ZoneMetric {
+  locationId: string;
+  zone: string;
+  borough: string;
+  coord: [number, number];
+  pickup: Record<SourceKey, number>;
+  dropoff: Record<SourceKey, number>;
+  avgFare: Record<SourceKey, number>;
+  avgDistance: Record<SourceKey, number>;
+}
+
+export interface DashboardViewModel {
+  kpis: KpiMetric[];
+  mapZones: Array<{
+    locationId: string;
+    name: string;
+    value: number;
+    borough: string;
+    selected: boolean;
+  }>;
+  mapNodes: MapNode[];
+  mapRoutes: MapRoute[];
+  topPickupZones: RankingItem[];
+  topRoutes: RankingItem[];
+  monthlyTrend: MonthlyPoint[];
+  weekdayHourHeatmap: HeatmapPoint[];
+  sourceComparison: ComparisonMetric[];
+  distribution: DistributionPoint[];
+  availableZones: Array<{ id: string; zone: string; borough: string }>;
+}

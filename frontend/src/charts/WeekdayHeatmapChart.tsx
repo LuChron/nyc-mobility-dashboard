@@ -1,12 +1,17 @@
 import type { EChartsOption } from 'echarts';
-import { weekdayHourHeatmap } from '../data/mockData';
+import type { HeatmapPoint } from '../types/dashboard';
 import { EChart } from './EChart';
 import { colors } from './chartTheme';
 
 const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const hours = ['12 AM', '4 AM', '8 AM', '12 PM', '4 PM', '8 PM', '12 AM'];
 
-export function WeekdayHeatmapChart() {
+interface WeekdayHeatmapChartProps {
+  data: HeatmapPoint[];
+}
+
+export function WeekdayHeatmapChart({ data }: WeekdayHeatmapChartProps) {
+  const maxValue = Math.max(...data.map((item) => item.value), 90);
   const option: EChartsOption = {
     tooltip: { position: 'top', backgroundColor: '#061321', borderColor: '#1d5b92', textStyle: { color: colors.text } },
     grid: { left: 36, right: 10, top: 18, bottom: 32 },
@@ -14,7 +19,7 @@ export function WeekdayHeatmapChart() {
     yAxis: { type: 'category', data: weekdays, axisLabel: { color: colors.text, fontSize: 10 }, splitArea: { show: true } },
     visualMap: {
       min: 0,
-      max: 90,
+      max: maxValue,
       orient: 'horizontal',
       left: 'center',
       bottom: 0,
@@ -26,7 +31,7 @@ export function WeekdayHeatmapChart() {
     series: [
       {
         type: 'heatmap',
-        data: weekdayHourHeatmap.map((d) => [hours.indexOf(d.hour), weekdays.indexOf(d.weekday), d.value]),
+        data: data.map((d) => [hours.indexOf(d.hour), weekdays.indexOf(d.weekday), d.value]),
         emphasis: { itemStyle: { borderColor: '#fff', borderWidth: 1 } },
       },
     ],
@@ -34,4 +39,3 @@ export function WeekdayHeatmapChart() {
 
   return <EChart option={option} className="chart fill" />;
 }
-
