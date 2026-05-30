@@ -773,7 +773,52 @@ select {
 @media (max-width: 1450px) {
   .dashboard-grid {
     grid-template-columns: 270px minmax(220px, 1fr) minmax(220px, 1fr) 430px;
+}
+
+@media (max-height: 850px) {
+  .dashboard-grid {
+    grid-template-rows: minmax(0, 1fr) 200px;
   }
+
+  .right-column {
+    grid-template-rows: 250px minmax(0, 1fr);
+  }
+
+  .kpi-card {
+    padding: 12px;
+  }
+
+  .kpi-top {
+    grid-template-columns: 46px 1fr;
+    gap: 9px;
+  }
+
+  .kpi-icon {
+    width: 46px;
+    height: 46px;
+  }
+
+  .kpi-top strong {
+    font-size: 22px;
+  }
+
+  .kpi-change {
+    gap: 5px;
+    font-size: 11px;
+  }
+
+  .sparkline {
+    height: 34px;
+  }
+
+  .ranking-list {
+    gap: 5px;
+  }
+
+  .ranking-list li {
+    grid-template-columns: 17px minmax(0, 1fr) 64px 50px;
+  }
+}
 
   .dashboard-header {
     grid-template-columns: 132px minmax(360px, 1fr) 560px;

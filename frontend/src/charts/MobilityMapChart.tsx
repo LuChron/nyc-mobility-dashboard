@@ -45,6 +45,7 @@ const MAP_NAME = 'nycTaxiZones';
 export function MobilityMapChart({ zones, nodes, routes, selectedZone, selectableZoneIds, onZoneSelect }: MobilityMapChartProps) {
   const [ready, setReady] = useState(false);
   const [zoneLookup, setZoneLookup] = useState<Record<string, { zone: string; borough: string }>>({});
+  const [featureCount, setFeatureCount] = useState(0);
   const [mapZoom, setMapZoom] = useState(1.12);
 
   useEffect(() => {
@@ -64,6 +65,7 @@ export function MobilityMapChart({ zones, nodes, routes, selectedZone, selectabl
         });
         echarts.registerMap(MAP_NAME, geoJson as never);
         setZoneLookup(lookup);
+        setFeatureCount(geoJson.features.length);
         setReady(true);
       });
 
@@ -243,7 +245,7 @@ export function MobilityMapChart({ zones, nodes, routes, selectedZone, selectabl
       </div>
       <div className="map-status">
         <span>{selectedZone === 'all' ? 'All Taxi Zones' : zoneLookup[selectedZone]?.zone}</span>
-        <strong>{Object.keys(zoneLookup).length} boundaries / {zones.length} metric zones</strong>
+        <strong>{featureCount} map parts / {zones.length} metric zones</strong>
       </div>
       <div className="map-legend">
         <span>Metric Intensity</span>
