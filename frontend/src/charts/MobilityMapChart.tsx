@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import * as echarts from 'echarts';
 import type { ECElementEvent, EChartsOption } from 'echarts';
-import type { MapNode, MapRoute } from '../types/dashboard';
+import type { MapRoute } from '../types/dashboard';
 import { EChart } from './EChart';
 import { colors } from './chartTheme';
 
@@ -15,11 +15,14 @@ interface MapZoneDatum {
 
 interface MobilityMapChartProps {
   zones: MapZoneDatum[];
-  nodes: MapNode[];
   routes: MapRoute[];
   selectedZone: string;
   selectableZoneIds: string[];
+  metricLabel: string;
+  metricUnit: string;
+  odRouteStatus: 'loading' | 'ready' | 'error';
   onZoneSelect: (zoneId: string) => void;
+  onClearZone: () => void;
 }
 
 type TaxiZoneProperties = {
@@ -42,12 +45,19 @@ type TaxiZoneGeoJson = {
 
 const MAP_NAME = 'nycTaxiZones';
 
-export function MobilityMapChart({ zones, nodes, routes, selectedZone, selectableZoneIds, onZoneSelect }: MobilityMapChartProps) {
+function formatMapValue(value: number, unit: string) {
+  if (unit === 'USD') return `$${value.toFixed(2)}`;
+  if (unit === 'mi') return `${value.toFixed(2)} mi`;
+  return `${Math.round(value).toLocaleString()} ${unit}`;
+}
+
+export function MobilityMapChart({ zones, routes, selectedZone, selectableZoneIds, metricLabel, metricUnit, odRouteStatus, onZoneSelect, onClearZone }: MobilityMapChartProps) {
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [zoneLookup, setZoneLookup] = useState<Record<string, { zone: string; borough: string }>>({});
   const [featureCount, setFeatureCount] = useState(0);
   const [mapZoom, setMapZoom] = useState(1.12);
+  const [mapNotice, setMapNotice] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -79,6 +89,10 @@ export function MobilityMapChart({ zones, nodes, routes, selectedZone, selectabl
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    setMapNotice('');
+  }, [selectedZone, selectableZoneIds]);
 
   const zoneValues = useMemo(() => {
     const values = new Map(zones.map((zone) => [zone.locationId, zone]));
@@ -121,7 +135,7 @@ export function MobilityMapChart({ zones, nodes, routes, selectedZone, selectabl
           const zoneName = lookup?.zone ?? id;
           const borough = lookup?.borough ?? typed.data?.borough ?? '-';
           if (metric) {
-            return `${zoneName}<br/>Borough: ${borough}<br/>Value: ${Math.round(value ?? 0).toLocaleString()}`;
+            return `${zoneName}<br/>Borough: ${borough}<br/>${metricLabel}: ${formatMapValue(value ?? 0, metricUnit)}`;
           }
           return `${zoneName}<br/>Borough: ${borough}<br/>No mock data in this prototype`;
         },
@@ -137,7 +151,7 @@ export function MobilityMapChart({ zones, nodes, routes, selectedZone, selectabl
         orient: 'horizontal',
         text: ['High', 'Low'],
         textStyle: { color: colors.muted, fontSize: 10 },
-        inRange: { color: ['#0a1c34', '#153b8a', '#7049c9', '#ff6c42', '#ffe436'] },
+        inRange: { color: ['#10242c', '#1e5a62', '#3e8877', '#d56734', '#f6c84c'] },
         calculable: false,
       },
       geo: {
@@ -147,13 +161,13 @@ export function MobilityMapChart({ zones, nodes, routes, selectedZone, selectabl
         center: [-73.945, 40.72],
         nameProperty: 'locationid',
         itemStyle: {
-          areaColor: '#0b2340',
+          areaColor: '#10242c',
           borderColor: 'rgba(115, 196, 255, 0.38)',
           borderWidth: 0.55,
         },
         emphasis: {
           itemStyle: {
-            areaColor: '#2f82ff',
+            areaColor: '#d56734',
             borderColor: '#dff1ff',
             borderWidth: 1,
           },
@@ -176,9 +190,11 @@ export function MobilityMapChart({ zones, nodes, routes, selectedZone, selectabl
               borough: zone?.borough ?? zoneLookup[id]?.borough ?? '',
               itemStyle: isSelected
                 ? {
-                    areaColor: '#fff071',
+                    areaColor: '#f6c84c',
                     borderColor: '#ffffff',
                     borderWidth: 2,
+                    shadowBlur: 14,
+                    shadowColor: 'rgba(246, 200, 76, 0.52)',
                   }
                 : undefined,
             };
@@ -193,55 +209,41 @@ export function MobilityMapChart({ zones, nodes, routes, selectedZone, selectabl
           lineStyle: { curveness: 0.16 },
           data: routeLines,
         },
-        {
-          name: 'Top Zones',
-          type: 'scatter',
-          coordinateSystem: 'geo',
-          zlevel: 5,
-          symbolSize: (value: unknown) => {
-            const typed = value as number[];
-            return Math.max(8, Math.min(18, typed[2] / 7200));
-          },
-          label: {
-            show: true,
-            formatter: (params: { data?: { name?: string } }) => params.data?.name ?? '',
-            position: 'right',
-            color: colors.text,
-            fontSize: 10,
-            hideOverlap: true,
-            backgroundColor: 'rgba(4, 15, 28, 0.82)',
-            borderColor: 'rgba(115, 196, 255, 0.42)',
-            borderWidth: 1,
-            padding: [4, 6],
-            borderRadius: 3,
-          },
-          itemStyle: {
-            color: (params: { data?: { color?: string } }) => params.data?.color ?? colors.blue,
-            borderColor: '#ffffff',
-            borderWidth: 2,
-            shadowBlur: 12,
-            shadowColor: 'rgba(255, 255, 255, 0.5)',
-          },
-          data: nodes
-            .slice(0, 4)
-            .map((node) => ({
-            name: node.name,
-            locationId: node.zone,
-            value: [...node.coord, node.value],
-            color: node.color,
-          })),
-        },
       ],
     } as EChartsOption;
-  }, [mapZoom, nodes, ready, routes, selectedZone, zoneLookup, zoneValues, zones]);
+  }, [mapZoom, metricLabel, metricUnit, ready, routes, selectedZone, zoneLookup, zoneValues, zones]);
 
   const handleClick = useCallback((event: ECElementEvent) => {
     const data = event.data as { locationId?: string } | undefined;
     const zoneId = data?.locationId ?? (typeof event.name === 'string' ? event.name : '');
     if (zoneId && zoneLookup[zoneId] && selectableZones.has(zoneId)) {
+      setMapNotice('');
       onZoneSelect(zoneId);
+      return;
+    }
+
+    if (zoneId && zoneLookup[zoneId]) {
+      const zoneName = zoneLookup[zoneId]?.zone ?? zoneId;
+      setMapNotice(`${zoneName} is outside the current filter/model. Change borough or choose All Boroughs to inspect it.`);
     }
   }, [zoneLookup, selectableZones, onZoneSelect]);
+
+  const selectedZoneName = selectedZone === 'all' ? 'No zone selected' : zoneLookup[selectedZone]?.zone ?? selectedZone;
+  const routeCount = selectedZone === 'all' ? 0 : Math.min(routes.length, 4);
+  const routeStatusText = selectedZone === 'all'
+    ? `${featureCount} mapped zones / ${zones.length} modeled zones`
+    : odRouteStatus === 'loading'
+      ? 'Loading OD route records'
+      : routeCount > 0
+        ? `${routeCount} top OD route${routeCount === 1 ? '' : 's'} shown`
+        : 'No top OD route records for this zone';
+  const routeHelpText = selectedZone === 'all'
+    ? 'Hover is temporary; click a modeled zone to lock it.'
+    : odRouteStatus === 'loading'
+      ? 'The zone is locked. Routes will appear if the OD file has matches.'
+      : routeCount > 0
+        ? 'Yellow fill is selected. Lines show top OD flows; clear to unlock.'
+        : 'The zone is selected, but this filter has no exported top OD line.';
 
   return (
     <div className="map-stage real-map-stage">
@@ -252,17 +254,27 @@ export function MobilityMapChart({ zones, nodes, routes, selectedZone, selectabl
         <button type="button" aria-label="Zoom in" onClick={() => setMapZoom((zoom) => Math.min(2.2, Number((zoom + 0.14).toFixed(2))))}>+</button>
         <button type="button" aria-label="Zoom out" onClick={() => setMapZoom((zoom) => Math.max(0.82, Number((zoom - 0.14).toFixed(2))))}>-</button>
         <button type="button" aria-label="Reset map" onClick={() => {
-          setMapZoom(1.12);
-          onZoneSelect('all');
+          setMapZoom((zoom) => (zoom === 1.12 ? 1.1201 : 1.12));
         }}>◎</button>
       </div>
       <div className="map-status">
-        <span>{selectedZone === 'all' ? 'All Taxi Zones' : zoneLookup[selectedZone]?.zone}</span>
-        <strong>{featureCount} zones / {zones.length} with data</strong>
-        <em>{selectedZone === 'all' ? 'Dots: top zones. Select one to show OD flows.' : 'OD flows: selected zone only.'}</em>
+        <span>{selectedZone === 'all' ? 'Explore mode' : `Locked: ${selectedZoneName}`}</span>
+        <strong>{routeStatusText}</strong>
+        <em>{routeHelpText}</em>
+        {mapNotice && <p className="map-notice">{mapNotice}</p>}
+        {selectedZone !== 'all' && (
+          <button type="button" className="map-clear-zone" onClick={onClearZone}>
+            Clear zone
+          </button>
+        )}
+      </div>
+      <div className="map-interaction-key" aria-label="Map interaction legend">
+        <span><i className="key-hover" /> Hover preview</span>
+        <span><i className="key-selected" /> Click selection</span>
+        <span><i className="key-line" /> OD route after selection</span>
       </div>
       <div className="map-legend">
-        <span>Metric Intensity</span>
+        <span>{metricLabel}</span>
         <div className="legend-ramp" />
         <div className="legend-scale">
           <span>Low</span>

@@ -12,11 +12,24 @@ interface SidebarFiltersProps {
 }
 
 const metrics: Array<{ key: MetricKey; label: string; icon: ReactNode; wide?: boolean }> = [
-  { key: 'pickup', label: 'Pickup', icon: <MapPin size={15} /> },
-  { key: 'dropoff', label: 'Dropoff', icon: <LocateFixed size={15} /> },
-  { key: 'tripCount', label: 'Trip Count', icon: <Route size={15} /> },
-  { key: 'avgFare', label: 'Average Fare', icon: <CircleDollarSign size={15} /> },
-  { key: 'avgDistance', label: 'Average Distance', icon: <Navigation size={15} />, wide: true },
+  { key: 'pickup', label: 'Pickup volume', icon: <MapPin size={15} /> },
+  { key: 'dropoff', label: 'Dropoff volume', icon: <LocateFixed size={15} /> },
+  { key: 'tripCount', label: 'Trip volume', icon: <Route size={15} /> },
+  { key: 'avgFare', label: 'Avg fare', icon: <CircleDollarSign size={15} /> },
+  { key: 'avgDistance', label: 'Avg distance', icon: <Navigation size={15} />, wide: true },
+];
+
+const dayOptions: Array<{ key: FilterState['dayType']; label: string }> = [
+  { key: 'all', label: 'All' },
+  { key: 'weekday', label: 'Weekday' },
+  { key: 'weekend', label: 'Weekend' },
+];
+
+const monthOptions: Array<{ key: FilterState['month']; label: string }> = [
+  { key: 'all', label: 'All months' },
+  { key: 'q1', label: 'Q1' },
+  { key: 'q2', label: 'Q2' },
+  { key: 'h2', label: 'H2' },
 ];
 
 export function SidebarFilters({ filters, zones, onChange, onReset }: SidebarFiltersProps) {
@@ -25,13 +38,24 @@ export function SidebarFilters({ filters, zones, onChange, onReset }: SidebarFil
       ...filters,
       [key]: value,
       ...(key === 'borough' ? { zone: 'all' } : null),
+      ...(key === 'year' && value === '2026' && filters.month === 'h2' ? { month: 'all' } : null),
     });
   };
 
+  const selectedZone = filters.zone === 'all' ? 'All zones' : zones.find((zone) => zone.id === filters.zone)?.zone ?? filters.zone;
+  const selectedSource = sourceOptions.find((option) => option.key === filters.source)?.label ?? filters.source;
+  const selectedMetric = metrics.find((metric) => metric.key === filters.metric)?.label ?? filters.metric;
+
   return (
     <Panel title="Filters" className="filter-panel">
+      <div className="filter-context">
+        <span>Current view</span>
+        <strong>{selectedMetric}</strong>
+        <p>{selectedSource} / {filters.year} / {selectedZone}</p>
+      </div>
+
       <div className="filter-section">
-        <h3>1. Data Source</h3>
+        <h3>Data source</h3>
         <div className="segmented-grid">
           {sourceOptions.map((option) => (
             <button
@@ -39,6 +63,7 @@ export function SidebarFilters({ filters, zones, onChange, onReset }: SidebarFil
               className={filters.source === option.key ? 'active' : ''}
               key={option.key}
               onClick={() => update('source', option.key)}
+              aria-pressed={filters.source === option.key}
             >
               <span className="dot" style={{ backgroundColor: option.color }} />
               {option.label}
@@ -48,7 +73,7 @@ export function SidebarFilters({ filters, zones, onChange, onReset }: SidebarFil
       </div>
 
       <div className="filter-section">
-        <h3>2. Time Selection</h3>
+        <h3>Time window</h3>
         <label>
           <span>Year</span>
           <select value={filters.year} onChange={(event) => update('year', event.target.value as FilterState['year'])}>
@@ -60,20 +85,30 @@ export function SidebarFilters({ filters, zones, onChange, onReset }: SidebarFil
         <label>
           <span>Month</span>
           <select value={filters.month} onChange={(event) => update('month', event.target.value as FilterState['month'])}>
-            <option value="all">All Months (16)</option>
-            <option value="q1">Q1</option>
-            <option value="q2">Q2</option>
-            <option value="h2">H2</option>
+            {monthOptions.map((option) => (
+              <option value={option.key} key={option.key} disabled={filters.year === '2026' && option.key === 'h2'}>
+                {option.label}
+              </option>
+            ))}
           </select>
         </label>
         <div className="segmented-control">
-          <button type="button" className={filters.dayType === 'weekday' ? 'active' : ''} onClick={() => update('dayType', 'weekday')}>Weekday</button>
-          <button type="button" className={filters.dayType === 'weekend' ? 'active' : ''} onClick={() => update('dayType', 'weekend')}>Weekend</button>
+          {dayOptions.map((option) => (
+            <button
+              type="button"
+              className={filters.dayType === option.key ? 'active' : ''}
+              onClick={() => update('dayType', option.key)}
+              aria-pressed={filters.dayType === option.key}
+              key={option.key}
+            >
+              {option.label}
+            </button>
+          ))}
         </div>
       </div>
 
       <div className="filter-section">
-        <h3>3. Region Selection</h3>
+        <h3>Region</h3>
         <label>
           <span>Borough</span>
           <select value={filters.borough} onChange={(event) => update('borough', event.target.value)}>
@@ -95,7 +130,7 @@ export function SidebarFilters({ filters, zones, onChange, onReset }: SidebarFil
       </div>
 
       <div className="filter-section">
-        <h3>4. Metric Selection</h3>
+        <h3>Map metric</h3>
         <div className="metric-grid">
           {metrics.map((metric) => (
             <button
@@ -103,6 +138,7 @@ export function SidebarFilters({ filters, zones, onChange, onReset }: SidebarFil
               className={`${filters.metric === metric.key ? 'active' : ''} ${metric.wide ? 'wide' : ''}`}
               key={metric.key}
               onClick={() => update('metric', metric.key)}
+              aria-pressed={filters.metric === metric.key}
             >
               {metric.icon}
               {metric.label}
@@ -113,7 +149,7 @@ export function SidebarFilters({ filters, zones, onChange, onReset }: SidebarFil
 
       <button className="reset-button" type="button" onClick={onReset}>
         <RotateCcw size={15} />
-        Reset Filters
+        Reset view
       </button>
     </Panel>
   );

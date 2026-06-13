@@ -1,13 +1,13 @@
 export const colors = {
-  blue: '#58a6ff',
-  cyan: '#3dd9ff',
-  yellow: '#ffd21f',
-  green: '#5ad85a',
+  blue: '#51b7e8',
+  cyan: '#72d6e8',
+  yellow: '#f6c84c',
+  green: '#5bd18b',
   purple: '#8b5cff',
-  red: '#ff5d73',
-  text: '#dff1ff',
-  muted: '#8eb7d8',
-  grid: 'rgba(94, 167, 255, 0.13)',
+  red: '#ff5c45',
+  text: '#edf7fb',
+  muted: '#9db8c4',
+  grid: 'rgba(142, 199, 226, 0.14)',
 };
 
 export const axisStyle = {
@@ -16,4 +16,3 @@ export const axisStyle = {
   axisLabel: { color: colors.muted, fontSize: 10 },
   splitLine: { lineStyle: { color: colors.grid } },
 };
-

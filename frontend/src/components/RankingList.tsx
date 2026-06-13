@@ -6,11 +6,13 @@ interface RankingListProps {
   title: string;
   unit: string;
   items: RankingItem[];
-  actionLabel: string;
+  actionLabel?: string;
+  onAction?: () => void;
   onSelect?: (zoneId: string) => void;
+  emptyLabel?: string;
 }
 
-export function RankingList({ title, unit, items, actionLabel, onSelect }: RankingListProps) {
+export function RankingList({ title, unit, items, actionLabel, onAction, onSelect, emptyLabel = 'No routes match the current filters.' }: RankingListProps) {
   return (
     <Panel
       title={title}
@@ -18,28 +20,35 @@ export function RankingList({ title, unit, items, actionLabel, onSelect }: Ranki
       className="ranking-panel"
     >
       <ol className="ranking-list">
-        {items.map((item, index) => (
-          <li key={item.label}>
-            <span className="rank-index">{index + 1}</span>
-            <button
-              type="button"
-              className="rank-label"
-              onClick={() => item.zoneId && onSelect?.(item.zoneId)}
-              disabled={!item.zoneId || !onSelect}
-            >
-              {item.label}
-            </button>
-            <span className="rank-bar">
-              <i style={{ width: `${item.score}%`, backgroundColor: item.color }} />
-            </span>
-            <strong>{item.value}</strong>
-          </li>
-        ))}
+        {items.length > 0 ? (
+          items.map((item, index) => (
+            <li key={item.label}>
+              <span className="rank-index">{index + 1}</span>
+              <button
+                type="button"
+                className="rank-label"
+                onClick={() => item.zoneId && onSelect?.(item.zoneId)}
+                disabled={!item.zoneId || !onSelect}
+                aria-label={item.zoneId ? `Filter to ${item.label}` : item.label}
+              >
+                {item.label}
+              </button>
+              <span className="rank-bar">
+                <i style={{ width: `${item.score}%`, backgroundColor: item.color }} />
+              </span>
+              <strong>{item.value}</strong>
+            </li>
+          ))
+        ) : (
+          <li className="ranking-empty">{emptyLabel}</li>
+        )}
       </ol>
-      <button className="link-button" type="button">
-        {actionLabel}
-        <ArrowRight size={15} />
-      </button>
+      {actionLabel && (
+        <button className="link-button" type="button" onClick={onAction}>
+          {actionLabel}
+          <ArrowRight size={15} />
+        </button>
+      )}
     </Panel>
   );
 }

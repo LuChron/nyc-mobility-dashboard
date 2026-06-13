@@ -12,30 +12,36 @@ interface WeekdayHeatmapChartProps {
 
 export function WeekdayHeatmapChart({ data }: WeekdayHeatmapChartProps) {
   const maxValue = Math.max(...data.map((item) => item.value), 90);
+  const visibleWeekdays = weekdays.filter((weekday) => data.some((item) => item.weekday === weekday));
   const option: EChartsOption = {
     tooltip: { position: 'top', backgroundColor: '#061321', borderColor: '#1d5b92', textStyle: { color: colors.text } },
-    grid: { left: 36, right: 10, top: 18, bottom: 32 },
+    grid: { left: 36, right: 10, top: 12, bottom: 48 },
     xAxis: { type: 'category', data: hours, axisLabel: { color: colors.muted, fontSize: 10 }, splitArea: { show: true } },
-    yAxis: { type: 'category', data: weekdays, axisLabel: { color: colors.text, fontSize: 10 }, splitArea: { show: true } },
+    yAxis: { type: 'category', data: visibleWeekdays, axisLabel: { color: colors.text, fontSize: 10 }, splitArea: { show: true } },
     visualMap: {
       min: 0,
       max: maxValue,
-      orient: 'horizontal',
-      left: 'center',
-      bottom: 0,
-      text: ['High', 'Low'],
-      textStyle: { color: colors.muted, fontSize: 10 },
+      show: false,
       calculable: false,
       inRange: { color: ['#07172a', '#33278b', '#a73c92', '#ff7132', '#ffe436'] },
     },
     series: [
       {
         type: 'heatmap',
-        data: data.map((d) => [hours.indexOf(d.hour), weekdays.indexOf(d.weekday), d.value]),
+        data: data.map((d) => [hours.indexOf(d.hour), visibleWeekdays.indexOf(d.weekday), d.value]),
         emphasis: { itemStyle: { borderColor: '#fff', borderWidth: 1 } },
       },
     ],
   };
 
-  return <EChart option={option} className="chart fill" />;
+  return (
+    <div className="heatmap-chart-wrap">
+      <EChart option={option} className="chart fill" />
+      <div className="heatmap-scale" aria-hidden="true">
+        <span>Low</span>
+        <i />
+        <span>High</span>
+      </div>
+    </div>
+  );
 }

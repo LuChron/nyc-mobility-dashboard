@@ -12,9 +12,9 @@ import type {
 } from '../types/dashboard';
 
 export const sourceOptions: Array<{ key: SourceKey; label: string; color: string }> = [
-  { key: 'all', label: 'All', color: '#58a6ff' },
-  { key: 'yellow', label: 'Yellow Taxi', color: '#ffd21f' },
-  { key: 'green', label: 'Green Taxi', color: '#5ad85a' },
+  { key: 'all', label: 'All services', color: '#51b7e8' },
+  { key: 'yellow', label: 'Yellow taxi', color: '#f6c84c' },
+  { key: 'green', label: 'Green taxi', color: '#5bd18b' },
   { key: 'hvfhv', label: 'HVFHV', color: '#8b5cff' },
 ];
 

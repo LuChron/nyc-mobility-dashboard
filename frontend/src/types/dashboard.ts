@@ -4,7 +4,7 @@ export type SourceKey = 'all' | 'yellow' | 'green' | 'hvfhv';
 
 export type KpiTone = 'blue' | 'green' | 'purple' | 'amber';
 
-export type DayType = 'weekday' | 'weekend';
+export type DayType = 'all' | 'weekday' | 'weekend';
 
 export type MetricKey = 'pickup' | 'dropoff' | 'tripCount' | 'avgFare' | 'avgDistance';
 
@@ -88,6 +88,23 @@ export interface MapRoute {
   toCoord: [number, number];
   value: number;
   color: string;
+}
+
+export interface OdRouteRecord {
+  source: SourceKey;
+  month: string;
+  day_type: DayType;
+  from_location_id: number;
+  to_location_id: number;
+  from_zone: string;
+  to_zone: string;
+  from_borough: string;
+  to_borough: string;
+  from_centroid: [number, number];
+  to_centroid: [number, number];
+  trip_count: number;
+  avg_fare: number;
+  avg_distance: number;
 }
 
 export interface ZoneMetric {

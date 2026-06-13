@@ -10,6 +10,7 @@ import type {
   KpiMetric,
   MapRoute,
   MonthlyPoint,
+  OdRouteRecord,
   RankingItem,
   SourceKey,
   ZoneMetric,
@@ -219,6 +220,18 @@ const routes = [
 
 const sourceColors = Object.fromEntries(sourceOptions.map((source) => [source.key, source.color])) as Record<SourceKey, string>;
 
+interface AggregatedOdRoute {
+  key: string;
+  fromId: string;
+  toId: string;
+  from: string;
+  to: string;
+  fromCoord: [number, number];
+  toCoord: [number, number];
+  value: number;
+  color: string;
+}
+
 function sourceValue(values: Record<SourceKey, number>, source: SourceKey) {
   return source === 'all' ? values.all : values[source];
 }
@@ -232,7 +245,7 @@ function filteredZones(filters: FilterState) {
 }
 
 function dayMultiplier(dayType: FilterState['dayType']) {
-  return dayType === 'weekday' ? 1 : 0.74;
+  return { all: 1, weekday: 1.08, weekend: 0.74 }[dayType];
 }
 
 function monthMultiplier(month: FilterState['month']) {
@@ -247,10 +260,27 @@ function overallMultiplier(filters: FilterState) {
   return dayMultiplier(filters.dayType) * monthMultiplier(filters.month) * yearMultiplier(filters.year);
 }
 
+function monthMatchesFilter(month: string, filters: FilterState) {
+  const [yearText, monthText] = month.split('-');
+  const yearMatch = filters.year === '2025-2026' || yearText === filters.year;
+  const monthNumber = Number(monthText);
+  const monthMatch =
+    filters.month === 'all'
+    || (filters.month === 'q1' && monthNumber >= 1 && monthNumber <= 3)
+    || (filters.month === 'q2' && monthNumber >= 4 && monthNumber <= 6)
+    || (filters.month === 'h2' && monthNumber >= 7 && monthNumber <= 12);
+  return yearMatch && monthMatch;
+}
+
+function dayMatchesRoute(dayType: OdRouteRecord['day_type'], filters: FilterState) {
+  return dayType === filters.dayType;
+}
+
 function metricValue(zone: ZoneMetric, filters: FilterState) {
   const source = filters.source;
   const mult = overallMultiplier(filters);
   if (filters.metric === 'dropoff') return sourceValue(zone.dropoff, source) * mult;
+  if (filters.metric === 'tripCount') return ((sourceValue(zone.pickup, source) + sourceValue(zone.dropoff, source)) / 2) * mult;
   if (filters.metric === 'avgFare') return sourceValue(zone.avgFare, source);
   if (filters.metric === 'avgDistance') return sourceValue(zone.avgDistance, source);
   return sourceValue(zone.pickup, source) * mult;
@@ -268,7 +298,7 @@ function buildKpis(filters: FilterState, zones: ZoneMetric[]): KpiMetric[] {
   const weightedFare = zones.reduce((sum, zone) => sum + sourceValue(zone.pickup, filters.source) * sourceValue(zone.avgFare, filters.source), 0);
   const weightedDistance = zones.reduce((sum, zone) => sum + sourceValue(zone.pickup, filters.source) * sourceValue(zone.avgDistance, filters.source), 0);
   const pickupBase = zones.reduce((sum, zone) => sum + sourceValue(zone.pickup, filters.source), 0) || 1;
-  const weekendDelta = filters.dayType === 'weekend' ? -12.4 : 8.6;
+  const weekendDelta = filters.dayType === 'weekend' ? -12.4 : filters.dayType === 'weekday' ? 8.6 : 3.2;
   return [
     {
       label: 'Total Trips',
@@ -297,7 +327,7 @@ function buildKpis(filters: FilterState, zones: ZoneMetric[]): KpiMetric[] {
     {
       label: 'Peak Hour',
       value: filters.dayType === 'weekend' ? '8 PM - 9 PM' : '5 PM - 6 PM',
-      change: filters.dayType === 'weekend' ? '18.2%' : '24.7%',
+      change: filters.dayType === 'weekend' ? '18.2%' : filters.dayType === 'weekday' ? '24.7%' : '21.4%',
       direction: 'up',
       tone: 'amber',
       sparkline: [8, 9, 12, 15, 17, 18, 19, 22, 24, 24, 23, 21, 19, 17, 15, 12],
@@ -309,17 +339,28 @@ function buildMonthlyTrend(filters: FilterState): MonthlyPoint[] {
   const sourceScale = { all: 1, yellow: 0.42, green: 0.15, hvfhv: 0.62 }[filters.source];
   const regionScale = filters.borough === 'all' ? 1 : filters.borough === 'Manhattan' ? 0.58 : filters.borough === 'Queens' ? 0.24 : 0.18;
   const values = [28, 29, 31, 29, 32, 35, 37, 35, 34, 37, 36, 32, 31, 35, 36, 40];
-  return values.map((value, index) => ({
-    month: ["Jan '25", "Feb '25", "Mar '25", "Apr '25", "May '25", "Jun '25", "Jul '25", "Aug '25", "Sep '25", "Oct '25", "Nov '25", "Dec '25", "Jan '26", "Feb '26", "Mar '26", "Apr '26"][index],
+  const months = ["Jan '25", "Feb '25", "Mar '25", "Apr '25", "May '25", "Jun '25", "Jul '25", "Aug '25", "Sep '25", "Oct '25", "Nov '25", "Dec '25", "Jan '26", "Feb '26", "Mar '26", "Apr '26"];
+  const rows = values.map((value, index) => ({
+    month: months[index],
     all: value * sourceScale * regionScale,
     yellow: value * 0.39 * regionScale,
     green: value * 0.11 * regionScale,
     hvfhv: value * 0.55 * regionScale,
   }));
+
+  return rows.filter((row, index) => {
+    const yearMatch = filters.year === '2025-2026' || row.month.endsWith(filters.year.slice(2));
+    const monthInQuarter =
+      filters.month === 'all'
+        || (filters.month === 'q1' && [0, 1, 2, 12, 13, 14].includes(index))
+        || (filters.month === 'q2' && [3, 4, 5, 15].includes(index))
+        || (filters.month === 'h2' && index >= 6 && index <= 11);
+    return yearMatch && monthInQuarter;
+  });
 }
 
 function buildHeatmap(filters: FilterState): HeatmapPoint[] {
-  const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const weekdays = filters.dayType === 'weekday' ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'] : filters.dayType === 'weekend' ? ['Sat', 'Sun'] : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const hours = ['12 AM', '4 AM', '8 AM', '12 PM', '4 PM', '8 PM', '12 AM'];
   const weekendBoost = filters.dayType === 'weekend' ? 1.2 : 1;
   return weekdays.flatMap((weekday, row) =>
@@ -370,7 +411,57 @@ function buildRankings(filters: FilterState, zones: ZoneMetric[]): RankingItem[]
   }));
 }
 
-function buildRoutes(filters: FilterState): RankingItem[] {
+function aggregateOdRows(filters: FilterState, odRows: OdRouteRecord[]): AggregatedOdRoute[] {
+  const visibleIds = new Set(filteredZones(filters).map((zone) => zone.locationId));
+  const rows = new Map<string, AggregatedOdRoute>();
+
+  odRows
+    .filter((route) => route.source === filters.source)
+    .filter((route) => dayMatchesRoute(route.day_type, filters))
+    .filter((route) => monthMatchesFilter(route.month, filters))
+    .filter((route) => filters.borough === 'all' || visibleIds.has(String(route.from_location_id)) || visibleIds.has(String(route.to_location_id)))
+    .filter((route) => filters.zone === 'all' || String(route.from_location_id) === filters.zone || String(route.to_location_id) === filters.zone)
+    .forEach((route) => {
+      const fromId = String(route.from_location_id);
+      const toId = String(route.to_location_id);
+      const key = `${fromId}->${toId}`;
+      const existing = rows.get(key);
+      if (existing) {
+        existing.value += route.trip_count;
+        return;
+      }
+      rows.set(key, {
+        key,
+        fromId,
+        toId,
+        from: route.from_zone,
+        to: route.to_zone,
+        fromCoord: route.from_centroid,
+        toCoord: route.to_centroid,
+        value: route.trip_count,
+        color: sourceColors[filters.source],
+      });
+    });
+
+  return [...rows.values()].sort((a, b) => b.value - a.value);
+}
+
+function buildRoutes(filters: FilterState, odRows: OdRouteRecord[] | null): RankingItem[] {
+  if (odRows === null) {
+    return [];
+  }
+
+  if (odRows.length > 0) {
+    const rows = aggregateOdRows(filters, odRows);
+    const max = Math.max(...rows.map((route) => route.value), 1);
+    return rows.slice(0, 5).map((route) => ({
+      label: `${route.from} -> ${route.to}`,
+      value: `${(route.value / 1000).toFixed(2)}K`,
+      score: (route.value / max) * 100,
+      color: route.color,
+    }));
+  }
+
   const visibleIds = new Set(filteredZones(filters).map((zone) => zone.locationId));
   const source = filters.source;
   const rows = routes
@@ -395,7 +486,22 @@ function buildRoutes(filters: FilterState): RankingItem[] {
   }));
 }
 
-function mapRoutesForFilters(filters: FilterState): MapRoute[] {
+function mapRoutesForFilters(filters: FilterState, odRows: OdRouteRecord[] | null): MapRoute[] {
+  if (odRows === null) {
+    return [];
+  }
+
+  if (odRows.length > 0) {
+    return aggregateOdRows(filters, odRows).slice(0, 6).map((route) => ({
+      from: route.from,
+      to: route.to,
+      fromCoord: route.fromCoord,
+      toCoord: route.toCoord,
+      value: route.value,
+      color: route.color,
+    }));
+  }
+
   const visibleIds = new Set(filteredZones(filters).map((zone) => zone.locationId));
   return routes
     .filter((route) => filters.borough === 'all' || visibleIds.has(route.from) || visibleIds.has(route.to))
@@ -417,7 +523,7 @@ function mapRoutesForFilters(filters: FilterState): MapRoute[] {
   });
 }
 
-export function buildDashboardViewModel(filters: FilterState, distributionMode: DistributionMode): DashboardViewModel {
+export function buildDashboardViewModel(filters: FilterState, distributionMode: DistributionMode, odRows: OdRouteRecord[] | null = null): DashboardViewModel {
   const zones = filteredZones(filters);
   const mapSourceZones = filters.borough === 'all' && filters.zone === 'all' ? baseZones : zones;
   const maxMap = Math.max(...baseZones.map((zone) => metricValue(zone, filters)), 1);
@@ -438,9 +544,9 @@ export function buildDashboardViewModel(filters: FilterState, distributionMode: 
       value: metricValue(zone, filters),
       color: metricValue(zone, filters) > maxMap * 0.75 ? '#ffd21f' : sourceColors[filters.source],
     })),
-    mapRoutes: mapRoutesForFilters(filters),
+    mapRoutes: mapRoutesForFilters(filters, odRows),
     topPickupZones: buildRankings(filters, zones),
-    topRoutes: buildRoutes(filters),
+    topRoutes: buildRoutes(filters, odRows),
     monthlyTrend: buildMonthlyTrend(filters),
     weekdayHourHeatmap: buildHeatmap(filters),
     sourceComparison: buildComparison(filters, zones),
@@ -455,7 +561,7 @@ export const initialFilters: FilterState = {
   source: 'all',
   year: '2025-2026',
   month: 'all',
-  dayType: 'weekday',
+  dayType: 'all',
   borough: 'all',
   zone: 'all',
   metric: 'pickup',
